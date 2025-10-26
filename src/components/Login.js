@@ -1,54 +1,61 @@
 import React, { useState } from 'react';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebase';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { useNavigate } from 'react-router-dom';
 
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [isSignup, setIsSignup] = useState(false);
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     
     try {
-      if (isSignUp) {
+      if (isSignup) {
         await createUserWithEmailAndPassword(auth, email, password);
       } else {
         await signInWithEmailAndPassword(auth, email, password);
       }
+      navigate('/dashboard');
     } catch (err) {
       setError(err.message);
     }
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '100px auto', padding: '20px' }}>
-      <h2>{isSignUp ? 'Sign Up' : 'Login'}</h2>
+    <div style={{ maxWidth: '400px', margin: '50px auto', padding: '20px', border: '1px solid #ccc' }}>
+      <h2>{isSignup ? 'Sign Up' : 'Login'}</h2>
       <form onSubmit={handleSubmit}>
         <input
           type="email"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          style={{ width: '100%', padding: '10px', marginBottom: '10px' }}
+          required
+          style={{ width: '100%', padding: '10px', margin: '10px 0' }}
         />
         <input
           type="password"
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          style={{ width: '100%', padding: '10px', marginBottom: '10px' }}
+          required
+          style={{ width: '100%', padding: '10px', margin: '10px 0' }}
         />
-        <button type="submit" style={{ width: '100%', padding: '10px' }}>
-          {isSignUp ? 'Sign Up' : 'Login'}
+        <button type="submit" style={{ width: '100%', padding: '10px', background: '#007bff', color: 'white', border: 'none' }}>
+          {isSignup ? 'Sign Up' : 'Login'}
         </button>
       </form>
       {error && <p style={{ color: 'red' }}>{error}</p>}
-      <button onClick={() => setIsSignUp(!isSignUp)} style={{ marginTop: '10px' }}>
-        {isSignUp ? 'Already have account? Login' : 'Need account? Sign Up'}
-      </button>
+      <p style={{ textAlign: 'center', marginTop: '20px' }}>
+        <button onClick={() => setIsSignup(!isSignup)} style={{ background: 'none', border: 'none', color: '#007bff', cursor: 'pointer' }}>
+          {isSignup ? 'Already have an account? Login' : "Don't have an account? Sign Up"}
+        </button>
+      </p>
     </div>
   );
 }

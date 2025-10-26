@@ -1,45 +1,66 @@
 import React, { useState, useEffect } from 'react';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { useParams, useNavigate } from 'react-router-dom';
 import { db, auth } from '../firebase';
-import { useParams } from 'react-router-dom';
+import { doc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import Editor from './Editor';
 import Comments from './Comments';
+import InviteModal from './InviteModal';
 
 function Board() {
-  const { boardId } = useParams();
+  const { id } = useParams();
   const [board, setBoard] = useState(null);
-  const [content, setContent] = useState('');
+  const [showInvite, setShowInvite] = useState(false);
+  const navigate = useNavigate();
+  const user = auth.currentUser;
 
   useEffect(() => {
-    loadBoard();
-  }, [boardId]);
-
-  const loadBoard = async () => {
-    const boardDoc = await getDoc(doc(db, 'boards', boardId));
-    if (boardDoc.exists()) {
-      const data = boardDoc.data();
-      setBoard(data);
-      setContent(data.content || '');
+    if (!user) {
+      navigate('/');
+      return;
     }
-  };
 
-  const saveContent = async () => {
-    await updateDoc(doc(db, 'boards', boardId), {
-      content: content
+    const unsubscribe = onSnapshot(doc(db, 'boards', id), (doc) => {
+      if (doc.exists()) {
+        setBoard({ id: doc.id, ...doc.data() });
+      } else {
+        alert('Board not found!');
+        navigate('/dashboard');
+      }
     });
-    alert('Saved!');
+
+    return () => unsubscribe();
+  }, [id, user, navigate]);
+
+  const saveContent = async (content) => {
+    try {
+      await updateDoc(doc(db, 'boards', id), {
+        content: content
+      });
+    } catch (err) {
+      alert('Error saving: ' + err.message);
+    }
   };
 
   if (!board) return <div>Loading...</div>;
 
   return (
-    <div style={{ padding: '20px' }}>
-      <h1>{board.title}</h1>
-      <Editor value={content} onChange={setContent} />
-      <button onClick={saveContent} style={{ marginTop: '10px', padding: '10px 20px' }}>
-        Save Notes
-      </button>
-      <Comments boardId={boardId} />
+    <div style={{ maxWidth: '1000px', margin: '20px auto', padding: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h2>{board.title}</h2>
+        <div>
+          <button onClick={() => setShowInvite(true)} style={{ padding: '10px 20px', background: '#007bff', color: 'white', border: 'none', marginRight: '10px' }}>
+            Share Board
+          </button>
+          <button onClick={() => navigate('/dashboard')} style={{ padding: '10px 20px', background: '#6c757d', color: 'white', border: 'none' }}>
+            Back
+          </button>
+        </div>
+      </div>
+
+      <Editor initialContent={board.content} onSave={saveContent} />
+      <Comments boardId={id} />
+
+      {showInvite && <InviteModal boardId={id} onClose={() => setShowInvite(false)} />}
     </div>
   );
 }

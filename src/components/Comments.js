@@ -1,72 +1,74 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, addDoc, orderBy, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../firebase';
+import { collection, addDoc, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 
 function Comments({ boardId }) {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
+  const user = auth.currentUser;
 
   useEffect(() => {
-    loadComments();
-  }, [boardId]);
-
-  const loadComments = async () => {
     const q = query(
       collection(db, 'comments'),
       where('boardId', '==', boardId),
-      orderBy('createdAt', 'desc')
+      orderBy('createdAt', 'asc')
     );
-    const snapshot = await getDocs(q);
-    const commentsData = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    setComments(commentsData);
-  };
 
-  const addComment = async () => {
-    if (!newComment.trim()) return;
-    
-    await addDoc(collection(db, 'comments'), {
-      boardId: boardId,
-      text: newComment,
-      author: auth.currentUser.email,
-      createdAt: serverTimestamp()
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const commentsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setComments(commentsData);
     });
-    
-    setNewComment('');
-    loadComments();
+
+    return () => unsubscribe();
+  }, [boardId]);
+
+  const addComment = async (e) => {
+    e.preventDefault();
+    if (!newComment.trim()) return;
+
+    try {
+      await addDoc(collection(db, 'comments'), {
+        boardId: boardId,
+        text: newComment,
+        author: user.email,
+        createdAt: new Date()
+      });
+      setNewComment('');
+    } catch (err) {
+      alert('Error adding comment: ' + err.message);
+    }
   };
 
   return (
-    <div style={{ marginTop: '40px', borderTop: '2px solid #ddd', paddingTop: '20px' }}>
+    <div style={{ marginTop: '40px', padding: '20px', border: '1px solid #ddd' }}>
       <h3>Comments</h3>
       
-      <div style={{ marginBottom: '20px' }}>
+      <form onSubmit={addComment} style={{ margin: '20px 0' }}>
         <textarea
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
           placeholder="Add a comment..."
           style={{ width: '100%', padding: '10px', minHeight: '80px' }}
         />
-        <button onClick={addComment} style={{ marginTop: '10px', padding: '8px 16px' }}>
-          Post Comment
+        <button type="submit" style={{ padding: '10px 20px', background: '#007bff', color: 'white', border: 'none', marginTop: '10px' }}>
+          Add Comment
         </button>
-      </div>
+      </form>
 
       <div>
-        {comments.map(comment => (
-          <div key={comment.id} style={{ 
-            padding: '10px', 
-            margin: '10px 0', 
-            backgroundColor: '#f5f5f5',
-            borderRadius: '5px'
-          }}>
-            <strong>{comment.author}</strong>
-            <p>{comment.text}</p>
-            <small>{comment.createdAt?.toDate().toLocaleString()}</small>
-          </div>
-        ))}
+        {comments.length === 0 ? (
+          <p>No comments yet.</p>
+        ) : (
+          comments.map(comment => (
+            <div key={comment.id} style={{ padding: '10px', margin: '10px 0', background: '#f8f9fa', borderLeft: '3px solid #007bff' }}>
+              <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px' }}>{comment.author}</p>
+              <p style={{ margin: '5px 0' }}>{comment.text}</p>
+              <p style={{ margin: '0', fontSize: '12px', color: '#666' }}>
+                {comment.createdAt?.toDate().toLocaleString()}
+              </p>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
