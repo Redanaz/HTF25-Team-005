@@ -3,12 +3,13 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: "YOUR_KEY",
-  authDomain: "YOUR_DOMAIN",
-  projectId: "YOUR_PROJECT",
-  storageBucket: "YOUR_BUCKET",
-  messagingSenderId: "YOUR_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyBHoLTKp2TY4iEk5EoYKLXSOKwH0aPVvoA",
+  authDomain: "collaborative-study-board.firebaseapp.com",
+  projectId: "collaborative-study-board",
+  storageBucket: "collaborative-study-board.firebasestorage.app",
+  messagingSenderId: "306021102256",
+  appId: "1:306021102256:web:0fc510d43bfddde53d4175",
+  measurementId: "G-FZ52CTR3N1"
 };
 
 const app = initializeApp(firebaseConfig);
